@@ -15,6 +15,7 @@ public function up()
         $table->id();
         $table->foreignId('weblist_id')->constrained('weblist')->onDelete('cascade');
         $table->string('image_path');
+         $table->string('public_id')->nullable(); // ID unik Cloudinary, untuk delete
         $table->timestamps();
     });
 }

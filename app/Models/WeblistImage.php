@@ -14,6 +14,7 @@ class WebListImage extends Model
     protected $fillable = [
         'weblist_id',
         'image_path',
+        'public_id',
     ];
 
     // Relasi ke WebList

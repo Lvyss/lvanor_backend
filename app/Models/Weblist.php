@@ -13,6 +13,7 @@ protected $table = 'weblist';
     protected $fillable = [
         'title',
         'image_path',
+        'public_id',
         'category_id',
         'user_id',
     ];

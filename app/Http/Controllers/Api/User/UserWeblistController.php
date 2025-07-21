@@ -140,50 +140,72 @@ class UserWeblistController extends Controller
         }
     }
 
-    public function destroy($id)
-    {
-        $weblist = Weblist::with('weblistImages')
-            ->where('id', $id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+public function destroy($id)
+{
+    $weblist = Weblist::with('weblistImages')
+        ->where('id', $id)
+        ->where('user_id', auth()->id())
+        ->firstOrFail();
 
-        DB::beginTransaction();
+    DB::beginTransaction();
 
-        try {
-            if ($weblist->public_id) {
-                $this->cloudinary->destroy($weblist->public_id);
+    try {
+        // Hapus thumbnail utama
+        if ($weblist->public_id) {
+            $result = $this->cloudinary->destroy($weblist->public_id);
+
+            if (!isset($result['result']) || $result['result'] !== 'ok') {
+                Log::warning('Gagal hapus thumbnail Cloudinary', [
+                    'user_id' => auth()->id(),
+                    'public_id' => $weblist->public_id,
+                    'cloudinary_response' => $result,
+                ]);
             }
-
-            foreach ($weblist->weblistImages as $image) {
-                if ($image->public_id) {
-                    $this->cloudinary->destroy($image->public_id);
-                }
-                $image->delete();
-            }
-
-            $weblist->delete();
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Weblist berhasil dihapus.'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('Gagal hapus Weblist', [
-                'error' => $e->getMessage(),
-                'user_id' => auth()->id(),
-                'weblist_id' => $id
-            ]);
-
-            return response()->json([
-                'message' => 'Gagal hapus data.',
-                'error' => 'Terjadi kesalahan internal.'
-            ], 500);
         }
+
+        // Hapus semua gambar lain
+        foreach ($weblist->weblistImages as $image) {
+            if ($image->public_id) {
+                $result = $this->cloudinary->destroy($image->public_id);
+
+                if (!isset($result['result']) || $result['result'] !== 'ok') {
+                    Log::warning('Gagal hapus image Cloudinary', [
+                        'user_id' => auth()->id(),
+                        'image_id' => $image->id,
+                        'public_id' => $image->public_id,
+                        'cloudinary_response' => $result,
+                    ]);
+                }
+            }
+
+            $image->delete();
+        }
+
+        $weblist->delete();
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Weblist berhasil dihapus.'
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('Gagal hapus Weblist', [
+            'error' => $e->getMessage(),
+            'user_id' => auth()->id(),
+            'weblist_id' => $id
+        ]);
+
+        return response()->json([
+            'message' => 'Gagal hapus data.',
+            'error' => 'Terjadi kesalahan internal.'
+        ], 500);
     }
+}
+
+
 
     private function replaceThumbnail($weblist, $image)
     {

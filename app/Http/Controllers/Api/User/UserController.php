@@ -90,50 +90,61 @@ class UserController extends Controller
     }
 
     // ✅ Update Profil User
-    public function updateProfile(Request $request)
-    {
-        $user = $request->user();
+public function updateProfile(Request $request)
+{
+    $user = $request->user();
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'bio' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
-            'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'bio' => 'nullable|string',
+        'phone' => 'nullable|string|max:20',
+        'address' => 'nullable|string|max:255',
+        'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+    ]);
 
-        // Upload gambar baru jika ada
-        if ($request->hasFile('profile_picture')) {
-            try {
-                if ($user->profile_public_id) {
-                    $this->cloudinary->destroy($user->profile_public_id);
+    // Upload gambar baru jika ada
+    if ($request->hasFile('profile_picture')) {
+        try {
+            // Hapus gambar lama dari Cloudinary
+            if ($user->profile_public_id) {
+                $response = $this->cloudinary->destroy($user->profile_public_id);
+
+                if (!isset($response['result']) || $response['result'] !== 'ok') {
+                    Log::warning('Gagal hapus foto profil lama di Cloudinary', [
+                        'user_id' => $user->id,
+                        'public_id' => $user->profile_public_id,
+                        'response' => $response
+                    ]);
                 }
-
-                $upload = $this->cloudinary->upload($request->file('profile_picture'), 'profile_pictures');
-
-                $user->profile_picture = $upload['secure_url'];
-                $user->profile_public_id = $upload['public_id'];
-            } catch (\Exception $e) {
-                Log::error('Gagal upload profil user', [
-                    'error' => $e->getMessage(),
-                    'user_id' => $user->id
-                ]);
-
-                return response()->json(['message' => 'Gagal upload gambar profil.'], 500);
             }
+
+            // Upload gambar baru
+            $upload = $this->cloudinary->upload($request->file('profile_picture'), 'profile_pictures');
+
+            $user->profile_picture = $upload['secure_url'];
+            $user->profile_public_id = $upload['public_id'];
+        } catch (\Exception $e) {
+            Log::error('Gagal upload profil user', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id
+            ]);
+
+            return response()->json(['message' => 'Gagal upload gambar profil.'], 500);
         }
-
-        // Update data teks profil
-        $user->update([
-            'name' => $validated['name'],
-            'bio' => $validated['bio'] ?? $user->bio,
-            'phone' => $validated['phone'] ?? $user->phone,
-            'address' => $validated['address'] ?? $user->address,
-        ]);
-
-        return response()->json([
-            'message' => 'Profil berhasil diperbarui.',
-            'data' => $user
-        ]);
     }
+
+    // Update data teks profil
+    $user->update([
+        'name' => $validated['name'],
+        'bio' => $validated['bio'] ?? $user->bio,
+        'phone' => $validated['phone'] ?? $user->phone,
+        'address' => $validated['address'] ?? $user->address,
+    ]);
+
+    return response()->json([
+        'message' => 'Profil berhasil diperbarui.',
+        'data' => $user
+    ]);
+}
+
 }

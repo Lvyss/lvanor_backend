@@ -11,7 +11,6 @@ use App\Http\Controllers\Api\User\{
     UserController,
     UserWeblistController,
     UserWeblistDetailController,
-    UserWeblistImageController
 };
 
 use App\Http\Controllers\Api\Admin\{
@@ -52,9 +51,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/my-weblist/{id}', [UserWeblistController::class, 'update']);
         Route::delete('/my-weblist/{id}', [UserWeblistController::class, 'destroy']);
 
-        Route::post('/my-weblist/{id}/detail', [UserWeblistDetailController::class, 'update']);
-        Route::post('/my-weblist/{id}/images', [UserWeblistImageController::class, 'store'])->middleware('throttle:10,1');
-        Route::delete('/my-weblist/images/{imageId}', [UserWeblistImageController::class, 'destroy']);
+        Route::post('/my-weblist/{id}/detail', [UserWeblistDetailController::class, 'updatedetail']);
+        Route::post('/my-weblist/{id}/images', [UserWeblistDetailController::class, 'storeimg'])->middleware('throttle:10,1');
+        Route::delete('/my-weblist/images/{imageId}', [UserWeblistDetailController::class, 'destroyimg']);
     });
 
     Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
