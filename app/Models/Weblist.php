@@ -22,13 +22,13 @@ protected $table = 'weblist';
  // Relasi ke Detail
     public function weblistDetail()
     {
-        return $this->hasOne(WebListDetail::class);
+        return $this->hasOne(WeblistDetail::class);
     }
 
     // Relasi ke Gambar Carousel
     public function weblistImages()
     {
-        return $this->hasMany(WebListImage::class);
+        return $this->hasMany(WeblistImage::class);
     }
 
     // Relasi ke Kategori
