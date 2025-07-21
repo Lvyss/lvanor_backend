@@ -27,6 +27,6 @@ class WebListDetail extends Model
     // Relasi ke WebList
     public function weblist()
     {
-        return $this->belongsTo(WebList::class);
+        return $this->belongsTo(Weblist::class);
     }
 }
