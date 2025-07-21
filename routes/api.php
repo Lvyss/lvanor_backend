@@ -55,7 +55,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/my-weblist/{id}/images', [UserWeblistDetailController::class, 'storeimg'])->middleware('throttle:10,1');
         Route::delete('/my-weblist/images/{imageId}', [UserWeblistDetailController::class, 'destroyimg']);
     });
-
+ Route::apiResource('/weblist', AdminWeblistController::class);
     Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
 
         Route::get('/profile', [AdminController::class, 'profile']);
@@ -68,7 +68,7 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/category', CategoryController::class);
 
-        Route::apiResource('/weblist', AdminWeblistController::class);
+       
 
         Route::post('weblist/{id}/detail', [AdminWeblistDetailController::class, 'update']);
 

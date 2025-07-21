@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('weblist', function (Blueprint $table) {
             $table->id();
              $table->foreignId('category_id')->constrained('category')->onDelete('cascade');
-             $table->foreignId('user_id')->constrained('user')->onDelete('cascade');
+             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('title');
             $table->string('image_path'); // URL gambar Cloudinary
             $table->string('public_id')->nullable(); // ID unik Cloudinary, untuk delete
