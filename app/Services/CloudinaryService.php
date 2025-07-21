@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Cloudinary\Cloudinary;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 
 class CloudinaryService
@@ -20,31 +21,32 @@ class CloudinaryService
         ]);
     }
 
-    public function upload($image, $folder = 'default_folder')
+    public function upload(UploadedFile $image, string $folder = 'default_folder'): array
     {
         $result = $this->cloudinary->uploadApi()->upload(
             $image->getRealPath(),
             ['folder' => $folder]
         );
 
-        // Optional: log isi response saat debug
-        // Log::info('Cloudinary upload result', $result);
+        if (!isset($result['secure_url']) || !isset($result['public_id'])) {
+            throw new \Exception('Upload ke Cloudinary gagal: URL atau public_id tidak tersedia.');
+        }
 
         return [
-            'secure_url' => $result['secure_url'] ?? null,
-            'public_id'  => $result['public_id'] ?? null,
+            'secure_url' => $result['secure_url'],
+            'public_id'  => $result['public_id'],
         ];
     }
 
-    public function uploadWithRetry($image, $folder = 'default_folder', $maxRetry = 3)
+    public function uploadWithRetry(UploadedFile $image, string $folder = 'default_folder', int $maxRetry = 3): array
     {
         for ($i = 0; $i < $maxRetry; $i++) {
             try {
                 return $this->upload($image, $folder);
             } catch (\Exception $e) {
                 Log::warning("Upload Cloudinary retry ke-" . ($i + 1), [
-                    'error' => $e->getMessage(),
-                    'file' => $image->getClientOriginalName() ?? 'unknown',
+                    'error'       => $e->getMessage(),
+                    'image_name'  => method_exists($image, 'getClientOriginalName') ? $image->getClientOriginalName() : 'unknown',
                 ]);
 
                 if ($i === $maxRetry - 1) {
@@ -65,7 +67,7 @@ class CloudinaryService
             if (!isset($responseArray['result']) || $responseArray['result'] !== 'ok') {
                 Log::warning('Gagal hapus file di Cloudinary', [
                     'public_id' => $publicId,
-                    'response' => $responseArray,
+                    'response'  => $responseArray,
                 ]);
             }
 
@@ -73,7 +75,7 @@ class CloudinaryService
         } catch (\Exception $e) {
             Log::error('Exception saat hapus file Cloudinary', [
                 'public_id' => $publicId,
-                'error' => $e->getMessage(),
+                'error'     => $e->getMessage(),
             ]);
 
             return ['result' => null, 'error' => $e->getMessage()];

@@ -93,52 +93,78 @@ class UserWeblistController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
-    {
-        $weblist = Weblist::where('id', $id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
+public function update(Request $request, $id)
+{
+    Log::info('REQUEST MASUK UNTUK UPDATE WEBLIST', [
+        'user_id' => auth()->id(),
+        'weblist_id' => $id,
+        'request_all' => $request->all(),
+        'has_image' => $request->hasFile('image'),
+        'image_info' => $request->file('image')
+            ? [
+                'original_name' => $request->file('image')->getClientOriginalName(),
+                'mime' => $request->file('image')->getMimeType(),
+                'size_kb' => round($request->file('image')->getSize() / 1024, 2),
+              ]
+            : null,
+    ]);
 
+    $weblist = Weblist::where('id', $id)
+        ->where('user_id', auth()->id())
+        ->firstOrFail();
+
+    try {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'category_id' => ['required', Rule::exists('category', 'id')],
         ]);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        Log::warning('VALIDASI GAGAL UPDATE WEBLIST', [
+            'errors' => $e->errors(),
+        ]);
 
-        DB::beginTransaction();
-
-        try {
-            $weblist->update([
-                'title' => $validated['title'],
-                'category_id' => $validated['category_id'],
-            ]);
-
-            if ($request->hasFile('image')) {
-                $this->replaceThumbnail($weblist, $request->file('image'));
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Weblist berhasil diupdate.',
-                'data' => $weblist->load(['category'])
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            Log::error('Gagal update Weblist', [
-                'error' => $e->getMessage(),
-                'user_id' => auth()->id(),
-                'weblist_id' => $id,
-            ]);
-
-            return response()->json([
-                'message' => 'Gagal update data.',
-                'error' => 'Terjadi kesalahan internal.'
-            ], 500);
-        }
+        return response()->json([
+            'message' => 'Validasi gagal.',
+            'errors' => $e->errors(),
+        ], 422);
     }
+
+    DB::beginTransaction();
+
+    try {
+        $weblist->update([
+            'title' => $validated['title'],
+            'category_id' => $validated['category_id'],
+        ]);
+
+        if ($request->hasFile('image')) {
+            $this->replaceThumbnail($weblist, $request->file('image'));
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Weblist berhasil diupdate.',
+            'data' => $weblist->load(['category'])
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('GAGAL UPDATE WEBLIST', [
+            'error' => $e->getMessage(),
+            'user_id' => auth()->id(),
+            'weblist_id' => $id,
+        ]);
+
+        return response()->json([
+            'message' => 'Gagal update data.',
+            'error' => 'Terjadi kesalahan internal.'
+        ], 500);
+    }
+}
+
 
 public function destroy($id)
 {

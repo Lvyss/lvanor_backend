@@ -38,6 +38,6 @@ protected $table = 'users';
 
     public function weblist()
     {
-        return $this->hasMany(WebList::class, 'user_id'); 
+        return $this->hasMany(Weblist::class, 'user_id'); 
     }
 }
