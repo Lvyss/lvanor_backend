@@ -40,6 +40,6 @@ protected $table = 'weblist';
     // Relasi ke User
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(related: User::class);
     }
 }

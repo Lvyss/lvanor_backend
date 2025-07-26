@@ -21,13 +21,13 @@ class UserWeblistController extends Controller
 
     public function index()
     {
-        $weblists = Weblist::with(['category', 'weblistDetail', 'weblistImages'])
+        $weblist = Weblist::with(['category', 'weblistDetail', 'weblistImages'])
             ->where('user_id', auth()->id())
             ->get();
 
         return response()->json([
             'message' => 'Weblist kamu berhasil diambil.',
-            'data' => $weblists
+            'data' => $weblist
         ]);
     }
 

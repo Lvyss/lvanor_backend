@@ -196,4 +196,43 @@ public function updatedetail(Request $request, $id)
             ], 500);
         }
     }
+
+public function like($id)
+{
+    try {
+        $weblist = Weblist::with('weblistDetail')->findOrFail($id);
+
+        $detail = $weblist->weblistDetail;
+
+        if (!$detail) {
+            // Auto-create jika belum ada
+            $detail = $weblist->weblistDetail()->create([
+                'likes' => 1,
+                'views' => 0, // default 0
+            ]);
+        } else {
+            $detail->increment('likes');
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil menambahkan like.',
+            'likes' => $detail->likes,
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Gagal menambahkan like ke Weblist Detail', [
+            'error' => $e->getMessage(),
+            'user_id' => auth()->id() ?? null,
+            'weblist_id' => $id,
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat menambahkan like.',
+        ], 500);
+    }
+}
+
+
+
 }

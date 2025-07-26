@@ -10,6 +10,10 @@ class WebListDetail extends Model
     use HasFactory;
 
     protected $table = 'weblist_detail';
+protected $attributes = [
+    'likes' => 0,
+    'views' => 0,
+];
 
     protected $fillable = [
         'weblist_id',
@@ -18,7 +22,9 @@ class WebListDetail extends Model
         'tech_stack',
         'price',
         'website_link',
-    ];
+        'views',
+        'likes',
+        ];
 
     protected $casts = [
         'features' => 'array', // Kalau pakai JSON, biar otomatis array

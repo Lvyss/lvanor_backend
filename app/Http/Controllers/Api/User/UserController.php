@@ -95,17 +95,17 @@ public function updateProfile(Request $request)
     $user = $request->user();
 
     $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'bio' => 'nullable|string',
-        'phone' => 'nullable|string|max:20',
-        'address' => 'nullable|string|max:255',
-        'profile_picture' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'name' => 'sometimes|string|max:255',
+        'bio' => 'sometimes|nullable|string|max:1000',
+        'phone' => 'sometimes|nullable|string|max:20',
+        'address' => 'sometimes|nullable|string|max:255',
+        'profile_picture' => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:10048',
     ]);
 
-    // Upload gambar baru jika ada
+    // 🔸 Upload gambar jika ada
     if ($request->hasFile('profile_picture')) {
         try {
-            // Hapus gambar lama dari Cloudinary
+            // Hapus gambar lama dari Cloudinary jika ada
             if ($user->profile_public_id) {
                 $response = $this->cloudinary->destroy($user->profile_public_id);
 
@@ -124,7 +124,7 @@ public function updateProfile(Request $request)
             $user->profile_picture = $upload['secure_url'];
             $user->profile_public_id = $upload['public_id'];
         } catch (\Exception $e) {
-            Log::error('Gagal upload profil user', [
+            Log::error('Gagal upload gambar profil user', [
                 'error' => $e->getMessage(),
                 'user_id' => $user->id
             ]);
@@ -133,18 +133,21 @@ public function updateProfile(Request $request)
         }
     }
 
-    // Update data teks profil
-    $user->update([
-        'name' => $validated['name'],
-        'bio' => $validated['bio'] ?? $user->bio,
-        'phone' => $validated['phone'] ?? $user->phone,
-        'address' => $validated['address'] ?? $user->address,
-    ]);
+    // 🔸 Update hanya field yang dikirim (tanpa null overwrite)
+    foreach (['name', 'bio', 'phone', 'address'] as $field) {
+        if ($request->has($field)) {
+            $user->$field = $request->$field;
+        }
+    }
+
+    $user->save();
 
     return response()->json([
         'message' => 'Profil berhasil diperbarui.',
-        'data' => $user
+        'data' => $user,
     ]);
 }
+
+
 
 }

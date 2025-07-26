@@ -19,6 +19,8 @@ public function up()
         $table->string('tech_stack')->nullable();
         $table->decimal('price', 10, 2)->nullable();
         $table->string('website_link')->nullable();
+         $table->unsignedBigInteger('views')->nullable();
+            $table->unsignedBigInteger('likes')->nullable();
         $table->timestamps();
     });
 }
