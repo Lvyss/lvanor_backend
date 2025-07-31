@@ -10,10 +10,6 @@ class WebListDetail extends Model
     use HasFactory;
 
     protected $table = 'weblist_detail';
-protected $attributes = [
-    'likes' => 0,
-    'views' => 0,
-];
 
     protected $fillable = [
         'weblist_id',
@@ -22,8 +18,6 @@ protected $attributes = [
         'tech_stack',
         'price',
         'website_link',
-        'views',
-        'likes',
         ];
 
     protected $casts = [

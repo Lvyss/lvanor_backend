@@ -16,8 +16,6 @@ use App\Http\Controllers\Api\User\{
 use App\Http\Controllers\Api\Admin\{
     AdminController,
     AdminWeblistController,
-    AdminWeblistDetailController,
-    AdminWeblistImageController
 };
 
 Route::prefix('v1')->group(function () {
@@ -32,11 +30,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/register', [UserController::class, 'register']);
     });
 
-Route::get('/explore-weblist', [AdminWeblistController::class, 'index']);
+
     Route::middleware(['auth:sanctum', IsUser::class])->group(function () {
 
         Route::post('/logout', [AuthController::class, 'logout']);
 
+        Route::get('/explore-weblist', [AdminWeblistController::class, 'index']);
         
         Route::get('/explore-weblist/{id}', [AdminWeblistController::class, 'show']);
 
@@ -48,8 +47,6 @@ Route::get('/explore-weblist', [AdminWeblistController::class, 'index']);
 
         Route::apiResource('/my-weblist', UserWeblistController::class);
 
-        Route::post('/weblist/{id}/like', [UserWeblistDetailController::class, 'like']);
-
         Route::post('/my-weblist/{id}/detail', [UserWeblistDetailController::class, 'updatedetail']);
         Route::post('/my-weblist/{id}/images', [UserWeblistDetailController::class, 'storeimg'])->middleware('throttle:10,1');
         Route::delete('/my-weblist/images/{imageId}', [UserWeblistDetailController::class, 'destroyimg']);
@@ -57,6 +54,7 @@ Route::get('/explore-weblist', [AdminWeblistController::class, 'index']);
 
     Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
+
         Route::get('/profile', [AdminController::class, 'profile']);
 
         Route::put('/profile/update', [AdminController::class, 'updateProfile']);
