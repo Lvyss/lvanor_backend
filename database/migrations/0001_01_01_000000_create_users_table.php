@@ -4,46 +4,59 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
+        // 🔐 Users table (untuk auth & role)
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');                          // Nama user
-            $table->string('email')->unique();               // Email user
-            $table->string('password');                      // Password user
-            $table->string('role')->default('user');         // Role user: admin, user, etc.
-            $table->string('profile_picture')->nullable();   // Foto profil user (Cloudinary URL)
-            $table->string('profile_public_id')->nullable(); // ID unik gambar Cloudinary
-            $table->text('bio')->nullable();                 // (Opsional) Deskripsi diri
-            $table->string('phone')->nullable();             // (Opsional) Nomor telepon
-            $table->string('address')->nullable();           // (Opsional) Alamat
-            $table->timestamp('email_verified_at')->nullable(); // Verifikasi email
+            $table->string('name');
+            $table->string('email')->unique()->nullable();
+            $table->string('password');
+
+            $table->enum('role', ['user', 'admin'])->default('user');
+            $table->string('provider')->nullable();      // google, github
+            $table->string('provider_id')->nullable();   // ID dari provider
+
+            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
+
+            $table->index(['provider', 'provider_id']);
+            $table->index('role');
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
+        // 👤 User Details table (profil lengkap)
+Schema::create('user_details', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+    
+    // Sudah ada
+    $table->string('profile_picture')->nullable();
+    $table->string('profile_public_id')->nullable();
 
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });
+    // Tambahan
+    $table->string('full_name')->nullable();
+    $table->string('username')->nullable(); // jika tidak pakai dari users table
+    $table->text('bio')->nullable();
+    $table->string('location')->nullable();
+
+    $table->string('email')->nullable(); // optional, bisa ditampilkan kabur
+    $table->string('linkedin')->nullable();
+    $table->string('github')->nullable();
+    $table->string('website')->nullable();
+    $table->string('tiktok')->nullable();
+    $table->string('instagram')->nullable();
+    $table->string('spline')->nullable();
+
+    $table->timestamps();
+});
+
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('user_details');
         Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('sessions');
     }
 };

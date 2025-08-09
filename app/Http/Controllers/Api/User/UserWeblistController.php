@@ -246,4 +246,18 @@ public function destroy($id)
             'public_id' => $upload['public_id']
         ]);
     }
+
+    public function publicList($userId)
+{
+    $weblist = Weblist::with(['category', 'weblistDetail', 'weblistImages'])
+        ->where('user_id', $userId)
+        ->latest()
+        ->get();
+
+    return response()->json([
+        'message' => 'Weblist publik berhasil diambil.',
+        'data' => $weblist
+    ]);
+}
+
 }

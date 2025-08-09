@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -18,35 +19,11 @@ class UserController extends Controller
         $this->cloudinary = $cloudinary;
     }
 
-    // ✅ Register User
-    public function register(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => 'user',
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'User berhasil terdaftar.',
-            'user' => $user->only(['id', 'name', 'email', 'created_at']),
-            'token' => $token,
-        ], 201);
-    }
 
     // ✅ Ambil Semua User
     public function getAllUsers()
     {
-        $users = User::select('id', 'name', 'email', 'role', 'created_at')->get();
+        $users = User::with('detail')->select('id', 'name', 'email', 'role', 'created_at')->get();
 
         return response()->json([
             'message' => 'Data user berhasil diambil.',
@@ -57,16 +34,16 @@ class UserController extends Controller
     // ✅ Hapus User
     public function deleteUser($id)
     {
-        $user = User::find($id);
+        $user = User::with('detail')->find($id);
 
         if (!$user) {
             return response()->json(['message' => 'User tidak ditemukan.'], 404);
         }
 
-        // Hapus gambar profil jika ada
-        if ($user->profile_public_id) {
+        // Hapus gambar profil dari cloudinary jika ada
+        if ($user->detail && $user->detail->profile_public_id) {
             try {
-                $this->cloudinary->destroy($user->profile_public_id);
+                $this->cloudinary->destroy($user->detail->profile_public_id);
             } catch (\Exception $e) {
                 Log::warning('Gagal hapus foto profil user saat delete', [
                     'error' => $e->getMessage(),
@@ -81,48 +58,70 @@ class UserController extends Controller
     }
 
     // ✅ Ambil Profil User yang Login
-    public function profile(Request $request)
-    {
-        return response()->json([
-            'message' => 'Profil berhasil diambil.',
-            'data' => $request->user()
-        ]);
-    }
+public function profile(Request $request)
+{
+    // Ambil user dan relasi detail
+    $user = $request->user()->load('detail');
+
+    return response()->json([
+        'message' => 'Profil berhasil diambil.',
+        'data' => $user // Sudah termasuk role, email, name, dll
+    ]);
+}
+
+// ✅ Endpoint profil publik berdasarkan username
+// app/Http/Controllers/UserController.php
+
+public function publicProfile($id)
+{
+    $user = User::with('detail')->findOrFail($id);
+    return response()->json($user);
+}
+
+
 
     // ✅ Update Profil User
 public function updateProfile(Request $request)
 {
     $user = $request->user();
+    $detail = $user->detail ?? $user->detail()->create(); // pastikan record detail ada
 
     $validated = $request->validate([
-        'name' => 'sometimes|string|max:255',
-        'bio' => 'sometimes|nullable|string|max:1000',
-        'phone' => 'sometimes|nullable|string|max:20',
-        'address' => 'sometimes|nullable|string|max:255',
         'profile_picture' => 'sometimes|nullable|image|mimes:jpg,jpeg,png|max:10048',
+        'full_name' => 'sometimes|nullable|string|max:255',
+        'username' => 'sometimes|nullable|string|max:100',
+        'bio' => 'sometimes|nullable|string|max:1000',
+        'location' => 'sometimes|nullable|string|max:255',
+        'email' => 'sometimes|nullable|email|max:255',
+        'linkedin' => 'sometimes|nullable|url|max:255',
+        'github' => 'sometimes|nullable|url|max:255',
+        'website' => 'sometimes|nullable|url|max:255',
+        'tiktok' => 'sometimes|nullable|url|max:255',
+        'instagram' => 'sometimes|nullable|url|max:255',
+        'spline' => 'sometimes|nullable|url|max:255',
     ]);
 
-    // 🔸 Upload gambar jika ada
+    // 🔸 Upload profile picture jika ada
     if ($request->hasFile('profile_picture')) {
         try {
-            // Hapus gambar lama dari Cloudinary jika ada
-            if ($user->profile_public_id) {
-                $response = $this->cloudinary->destroy($user->profile_public_id);
+            // Hapus gambar lama jika ada
+            if ($detail->profile_public_id) {
+                $response = $this->cloudinary->destroy($detail->profile_public_id);
 
                 if (!isset($response['result']) || $response['result'] !== 'ok') {
                     Log::warning('Gagal hapus foto profil lama di Cloudinary', [
                         'user_id' => $user->id,
-                        'public_id' => $user->profile_public_id,
+                        'public_id' => $detail->profile_public_id,
                         'response' => $response
                     ]);
                 }
             }
 
-            // Upload gambar baru
+            // Upload yang baru
             $upload = $this->cloudinary->upload($request->file('profile_picture'), 'profile_pictures');
 
-            $user->profile_picture = $upload['secure_url'];
-            $user->profile_public_id = $upload['public_id'];
+            $detail->profile_picture = $upload['secure_url'];
+            $detail->profile_public_id = $upload['public_id'];
         } catch (\Exception $e) {
             Log::error('Gagal upload gambar profil user', [
                 'error' => $e->getMessage(),
@@ -133,21 +132,33 @@ public function updateProfile(Request $request)
         }
     }
 
-    // 🔸 Update hanya field yang dikirim (tanpa null overwrite)
-    foreach (['name', 'bio', 'phone', 'address'] as $field) {
+    // 🔸 Update field selain foto
+    $fields = [
+        'full_name',
+        'username',
+        'bio',
+        'location',
+        'email',
+        'linkedin',
+        'github',
+        'website',
+        'tiktok',
+        'instagram',
+        'spline',
+    ];
+
+    foreach ($fields as $field) {
         if ($request->has($field)) {
-            $user->$field = $request->$field;
+            $detail->$field = $request->$field;
         }
     }
 
-    $user->save();
+    $detail->save();
 
     return response()->json([
         'message' => 'Profil berhasil diperbarui.',
-        'data' => $user,
+        'data' => $detail,
     ]);
 }
-
-
 
 }

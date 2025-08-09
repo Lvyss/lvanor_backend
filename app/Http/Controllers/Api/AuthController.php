@@ -6,58 +6,104 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Admin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // 🔑 Login Universal (Admin dan User)
-    public function login(Request $request)
+    // ✅ Login via Google (cek di User & Admin)
+    public function loginWithProvider(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
+        // 🔐 Validasi input
+        $validator = Validator::make($request->all(), [
+            'provider'     => 'required|in:google',
+            'provider_id'  => 'required|string',
+            'name'         => 'required|string',
+            'email'        => 'nullable|email',
         ]);
 
-        // Cek apakah email milik admin atau user
-        $account = Admin::where('email', $request->email)->first();
-        $role = 'admin';
-
-        if (!$account) {
-            $account = User::where('email', $request->email)->first();
-            $role = 'user';
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Kalau akun tidak ditemukan atau password salah
-        if (!$account || !Hash::check($request->password, $account->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Email atau password salah.'],
+        $data = $validator->validated();
+
+        // 🔎 Cek user
+        $user = User::where('provider', $data['provider'])
+                    ->where('provider_id', $data['provider_id'])
+                    ->first();
+
+        if (!$user && isset($data['email'])) {
+            $user = User::where('email', $data['email'])->first();
+        }
+
+        if ($user) {
+            $user->update([
+                'provider'     => $data['provider'],
+                'provider_id'  => $data['provider_id'],
+            ]);
+
+            $user->tokens()->delete();
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'message' => 'Login user berhasil',
+                'token'   => $token,
+                'type'    => 'user',
+                'user'    => $user,
             ]);
         }
 
-        // Hapus semua token lama (supaya single device login)
-        $account->tokens()->delete();
+        // 🔎 Cek admin
+        $admin = Admin::where('provider', $data['provider'])
+                      ->where('provider_id', $data['provider_id'])
+                      ->first();
 
-        // Buat token baru
-        $token = $account->createToken('auth_token')->plainTextToken;
+        if (!$admin && isset($data['email'])) {
+            $admin = Admin::where('email', $data['email'])->first();
+        }
 
-        // Tambahkan role di response
-        $userData = $account->toArray();
-        $userData['role'] = $role;
+        if ($admin) {
+            $admin->update([
+                'provider'     => $data['provider'],
+                'provider_id'  => $data['provider_id'],
+            ]);
+
+            $admin->tokens()->delete();
+            $token = $admin->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'message' => 'Login admin berhasil',
+                'token'   => $token,
+                'type'    => 'admin',
+                'user'    => $admin,
+            ]);
+        }
+
+        // 👶 Jika user belum ada, buat baru
+        $user = User::create([
+            'name'         => $data['name'],
+            'email'        => $data['email'] ?? null,
+            'provider'     => $data['provider'],
+            'provider_id'  => $data['provider_id'],
+            'role'         => 'user',
+            'password'     => Hash::make(uniqid()),
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Login berhasil',
-            'token' => $token,
-            'user' => $userData,
+            'message' => 'User baru dibuat & login berhasil',
+            'token'   => $token,
+            'type'    => 'user',
+            'user'    => $user,
         ]);
     }
 
-    // 🔓 Logout Universal
+    // ✅ Logout
     public function logout(Request $request)
     {
-        // Hapus token yang sedang dipakai (lebih Laravel way)
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['message' => 'Logout berhasil']);
     }
 }

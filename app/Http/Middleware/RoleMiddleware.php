@@ -1,13 +1,12 @@
 <?php
-
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
 
-class IsAdmin
+class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next, string $role)
     {
         $user = $request->user();
 
@@ -15,9 +14,9 @@ class IsAdmin
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
-        if ($user->role !== 'admin') {
+        if ($user->role !== $role) {
             return response()->json([
-                'message' => 'Akses ditolak. Hanya admin yang diperbolehkan.'
+                'message' => "Akses ditolak. Hanya {$role} yang diperbolehkan."
             ], 403);
         }
 

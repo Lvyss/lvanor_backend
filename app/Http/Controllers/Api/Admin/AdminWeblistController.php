@@ -22,7 +22,7 @@ class AdminWeblistController extends Controller
     // ✅ GET all Weblist (dengan relasi lengkap)
     public function index()
     {
-        $weblists = Weblist::with(['user', 'category', 'weblistDetail', 'weblistImages'])->get();
+        $weblists = Weblist::with(['user.detail', 'category', 'weblistDetail', 'weblistImages'])->get();
 
         return response()->json([
             'success' => true,
@@ -35,7 +35,7 @@ class AdminWeblistController extends Controller
     public function show($id)
     {
         try {
-            $weblist = Weblist::with(['user', 'category', 'weblistDetail', 'weblistImages'])->findOrFail($id);
+            $weblist = Weblist::with(['user.detail', 'category', 'weblistDetail', 'weblistImages'])->findOrFail($id);
 
             return response()->json([
                 'success' => true,
