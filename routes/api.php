@@ -41,7 +41,7 @@ Route::get('/public-weblist/{userId}', [UserWeblistController::class, 'publicLis
         Route::controller(UserWeblistDetailController::class)->group(function () {
             Route::post('/my-weblist/{id}/detail', 'updatedetail');
             Route::post('/my-weblist/{id}/images', 'storeimg')->middleware('throttle:10,1');
-            Route::delete('/my-weblist/images/{imageId}', 'destroyimg');
+            Route::delete('/my-weblist/{imageId}/images', 'destroyimg');
         });
     });
 
