@@ -17,7 +17,7 @@ use App\Http\Middleware\IsAdmin;
 
 Route::prefix('v1')->group(function () {
 
-    Route::fallback(fn () => response()->json(['message' => 'Endpoint tidak ditemukan.'], 404));
+    Route::fallback(fn() => response()->json(['message' => 'Endpoint tidak ditemukan.'], 404));
 
     // 📌 Public Access
     Route::middleware('throttle:5,1')->post('/social-login', [AuthController::class, 'loginWithProvider']);
@@ -35,7 +35,8 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::get('/explore-weblist/{id}', [AdminWeblistController::class, 'show']);
-Route::get('/public-weblist/{userId}', [UserWeblistController::class, 'publicList']);
+
+        Route::get('/public-weblist/{userId}', [UserWeblistController::class, 'publicList']);
 
         Route::apiResource('/my-weblist', UserWeblistController::class);
         Route::controller(UserWeblistDetailController::class)->group(function () {
