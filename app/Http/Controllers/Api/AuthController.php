@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Admin;
+use App\Models\UserDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -50,7 +52,7 @@ class AuthController extends Controller
                 'message' => 'Login user berhasil',
                 'token'   => $token,
                 'type'    => 'user',
-                'user'    => $user,
+                'user'    => $user->load('detail'),
             ]);
         }
 
@@ -90,13 +92,22 @@ class AuthController extends Controller
             'password'     => Hash::make(uniqid()),
         ]);
 
+        // 🎯 Generate username unik
+        $username = $this->generateUniqueUsername($data['name']);
+
+        UserDetail::create([
+            'user_id'  => $user->id,
+            'username' => $username,
+            'full_name' => $data['name'],
+        ]);
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'User baru dibuat & login berhasil',
             'token'   => $token,
             'type'    => 'user',
-            'user'    => $user,
+            'user'    => $user->load('detail'),
         ]);
     }
 
@@ -105,5 +116,17 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logout berhasil']);
+    }
+
+    // 🔑 Generate username unik
+    private function generateUniqueUsername($name)
+    {
+        $base = Str::slug(explode(' ', $name)[0]);
+
+        do {
+            $username = $base . rand(1000, 9999);
+        } while (UserDetail::where('username', $username)->exists());
+
+        return $username;
     }
 }

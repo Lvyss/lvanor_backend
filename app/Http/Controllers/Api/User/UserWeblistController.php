@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use App\Services\CloudinaryService;
-
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 class UserWeblistController extends Controller
 {
     protected $cloudinary;
@@ -29,6 +29,48 @@ class UserWeblistController extends Controller
             'message' => 'Weblist kamu berhasil diambil.',
             'data' => $weblist
         ]);
+    }
+
+        public function indexWeblist()
+    {
+        $weblists = Weblist::with(['user.detail', 'category', 'weblistDetail', 'weblistImages'])->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data weblist berhasil diambil.',
+            'data' => $weblists
+        ]);
+    }
+public function publicWeblist($id)
+{
+    $weblist = Weblist::with(['category', 'weblistDetail', 'weblistImages'])
+        ->where('user_id', $id) // cari berdasarkan user_id
+        ->get();
+
+    return response()->json([
+        'message' => 'Weblist publik berhasil diambil.',
+        'data' => $weblist
+    ]);
+}
+
+    public function showWeblist($id)
+    {
+        try {
+            $weblist = Weblist::with(['user.detail', 'category', 'weblistDetail', 'weblistImages'])->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail weblist ditemukan.',
+                'data' => $weblist
+            ]);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Gagal ambil detail weblist: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Weblist tidak ditemukan.'
+            ], 404);
+        }
     }
 
     public function show($id)
@@ -247,17 +289,6 @@ public function destroy($id)
         ]);
     }
 
-    public function publicList($userId)
-{
-    $weblist = Weblist::with(['category', 'weblistDetail', 'weblistImages'])
-        ->where('user_id', $userId)
-        ->latest()
-        ->get();
 
-    return response()->json([
-        'message' => 'Weblist publik berhasil diambil.',
-        'data' => $weblist
-    ]);
-}
 
 }

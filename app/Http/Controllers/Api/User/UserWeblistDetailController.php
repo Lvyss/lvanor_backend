@@ -7,12 +7,21 @@ use App\Models\Weblist;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use App\Models\WeblistImage;
 use App\Services\CloudinaryService;
 class UserWeblistDetailController extends Controller
 {
-public function updatedetail(Request $request, $id)
+
+
+
+     protected $cloudinary;
+
+    public function __construct(CloudinaryService $cloudinary)
+    {
+        $this->cloudinary = $cloudinary;
+    }
+
+public function updateDetail(Request $request, $id)
 {
     $weblist = Weblist::where('user_id', auth()->id())->findOrFail($id);
 
@@ -79,16 +88,7 @@ public function updatedetail(Request $request, $id)
         ], 500);
     }
 }
-
-
-     protected $cloudinary;
-
-    public function __construct(CloudinaryService $cloudinary)
-    {
-        $this->cloudinary = $cloudinary;
-    }
-
-    public function storeimg(Request $request, $id)
+    public function storeImg(Request $request, $id)
     {
         $request->validate([
             'carousel_images' => 'required|array|min:1|max:5',
@@ -150,9 +150,9 @@ public function updatedetail(Request $request, $id)
         }
     }
 
-    public function destroyimg($imageId)
+    public function destroyImg($id)
     {
-        $image = WeblistImage::with('weblist')->findOrFail($imageId);
+        $image = WeblistImage::with('weblist')->findOrFail($id);
 
         if ($image->weblist->user_id !== auth()->id()) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
@@ -187,7 +187,7 @@ public function updatedetail(Request $request, $id)
 
             Log::error('Gagal hapus carousel', [
                 'error' => $e->getMessage(),
-                'image_id' => $imageId,
+                'image_id' => $id,
                 'user_id' => auth()->id()
             ]);
 

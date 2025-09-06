@@ -12,8 +12,6 @@ use App\Http\Controllers\Api\Admin\{
     AdminController,
     AdminWeblistController
 };
-use App\Http\Middleware\IsUser;
-use App\Http\Middleware\IsAdmin;
 
 Route::prefix('v1')->group(function () {
 
@@ -21,9 +19,9 @@ Route::prefix('v1')->group(function () {
 
     // 📌 Public Access
     Route::middleware('throttle:5,1')->post('/social-login', [AuthController::class, 'loginWithProvider']);
-    Route::get('/explore-weblist', [AdminWeblistController::class, 'index']);
+    Route::get('/indexWeblist', [UserWeblistController::class, 'indexWeblist']);
     Route::get('/category', [CategoryController::class, 'index']);
-    Route::get('/user-profile/{id}', [UserController::class, 'publicProfile']);
+
 
     // 👤 Authenticated Users
     Route::middleware(['auth:sanctum', 'role:user'])->group(function () {
@@ -31,18 +29,20 @@ Route::prefix('v1')->group(function () {
 
         Route::controller(UserController::class)->group(function () {
             Route::get('/profile', 'profile');
-            Route::put('/profile/update', 'updateProfile');
+            Route::put('/updateProfile', 'updateProfile');
+            Route::get('/publicProfile/{id}', 'publicProfile');
         });
 
-        Route::get('/explore-weblist/{id}', [AdminWeblistController::class, 'show']);
+        Route::apiResource('/weblist', UserWeblistController::class);
+                Route::controller(UserWeblistController::class)->group(function () {
+            Route::get('/showWeblist/{id}', 'showWeblist');
+            Route::get('/publicWeblist/{id}', 'publicWeblist');
+        });
 
-        Route::get('/public-weblist/{userId}', [UserWeblistController::class, 'publicList']);
-
-        Route::apiResource('/my-weblist', UserWeblistController::class);
         Route::controller(UserWeblistDetailController::class)->group(function () {
-            Route::post('/my-weblist/{id}/detail', 'updatedetail');
-            Route::post('/my-weblist/{id}/images', 'storeimg')->middleware('throttle:10,1');
-            Route::delete('/my-weblist/{imageId}/images', 'destroyimg');
+            Route::post('/weblist/{id}/updateDetail', 'updateDetail');
+            Route::post('/weblist/{id}/storeImg', 'storeImg')->middleware('throttle:10,1');
+            Route::delete('/weblist/{id}/destroyImg', 'destroyImg');
         });
     });
 

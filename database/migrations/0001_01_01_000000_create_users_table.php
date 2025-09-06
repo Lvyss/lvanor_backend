@@ -37,7 +37,7 @@ Schema::create('user_details', function (Blueprint $table) {
 
     // Tambahan
     $table->string('full_name')->nullable();
-    $table->string('username')->nullable(); // jika tidak pakai dari users table
+    $table->string('username')->unique()->nullable(); // jika tidak pakai dari users table
     $table->text('bio')->nullable();
     $table->string('location')->nullable();
 
@@ -48,9 +48,12 @@ Schema::create('user_details', function (Blueprint $table) {
     $table->string('tiktok')->nullable();
     $table->string('instagram')->nullable();
     $table->string('spline')->nullable();
+$table->string('banner_image')->nullable();
+$table->string('banner_public_id')->nullable();
 
     $table->timestamps();
 });
+
 
     }
 

@@ -23,7 +23,8 @@ class UserDetail extends Model
         'website',
         'tiktok',
         'instagram',
-        'spline', 
+        'spline',
+        'banner_image',
     ];
 
 
